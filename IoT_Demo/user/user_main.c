@@ -42,8 +42,26 @@
 #include "user_interface.h"
 
 #include "mem.h"
-
 #include "sntp.h"
+#include "c_types.h"
+#include "common.h"
+#include "smartconfig.h"
+#include "user_airkiss.h"
+#include "osapi.h"
+#include "os_type.h"
+
+
+#define FAC_TEST_SSID     "TP-LINK_2.4G"
+#define FAC_TEST_PASSWORD "abcdef1234"
+
+
+
+uint8_t G_online_mode;//0断网，1连上服务器
+uint8_t dev_mac[6];//mac地址,hex
+uint8_t device_id[13];//mac地址，字符串
+
+
+
 
 #if ESP_PLATFORM
 #include "user_esp_platform.h"
@@ -102,6 +120,33 @@ typedef unsigned long u32_t;
 static ETSTimer sntp_timer;
 
 
+/*sbsq_toothbrush*/
+os_timer_t wifi_status_timer;
+os_timer_t led_timer;
+os_timer_t user_timer;//用户程序
+os_timer_t config_router_fail_t;
+uint8 G_led_mode;
+
+_TCP_MESS tcp_mess;
+
+uint8 wifi_led_level;
+uint8 G_router_mode=ROUTER_DISCONNECT;   //DISCONNECT、SMART_CONFIG、CONNECT_ROUTER、CONNECT_SERVER
+uint8 G_last_router_mode=ROUTER_DISCONNECT;
+uint8 G_server_mode=SERVER_DISCONNECT;   //SERVER_DISCONNECT，SERVER_CONFIG，SERVER_CONNECT
+uint8 G_last_server_mode=SERVER_DISCONNECT;
+
+uint32 G_https_flag;                     //0是http，1是https
+uint8  G_connection_flag;                 //0是短连接，1是长连接
+uint8  G_download_flag;                   //1开始下载文件 2正在下载文件
+uint8  G_download_type;                   //1下载wifi程序，2下载单片机程序，3下载证书
+uint8  tcp_host_data[1024];
+uint8  http_host_data[1024];
+uint8  tcp_send_flag;					 // 表示正在发送tcp数据包
+os_timer_t queue_send_t;				 //
+uint8 G_url_config_flag;				 // 1表示正在配置服务器
+
+
+
 
 void sntpfn()
 {
@@ -120,7 +165,7 @@ void sntpfn()
 void wifiConnectCb(uint8_t status)
 {
     if(status == STATION_GOT_IP){
-        sntp_setservername(0, "pool.ntp.org");        // set sntp server after got ip address
+        sntp_setservername(0, "cn.pool.ntp.org");        // set sntp server after got ip address
         sntp_init();
         os_timer_disarm(&sntp_timer);
         os_timer_setfn(&sntp_timer, (os_timer_func_t *)sntpfn, NULL);
@@ -147,13 +192,13 @@ void mqttConnectedCb(uint32_t *args)
 void mqttDisconnectedCb(uint32_t *args)
 {
     MQTT_Client* client = (MQTT_Client*)args;
-    INFO("MQTT: Disconnected\r\n");
+    os_printf("MQTT: Disconnected\r\n");
 }
 
 void mqttPublishedCb(uint32_t *args)
 {
     MQTT_Client* client = (MQTT_Client*)args;
-    INFO("MQTT: Published\r\n");
+    os_printf("MQTT: Published\r\n");
 }
 
 void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const char *data, uint32_t data_len)
@@ -169,7 +214,7 @@ void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const cha
     os_memcpy(dataBuf, data, data_len);
     dataBuf[data_len] = 0;
 
-    INFO("Receive topic: %s, data: %s \r\n", topicBuf, dataBuf);
+    os_printf("Receive topic: %s, data: %s \r\n", topicBuf, dataBuf);
     os_free(topicBuf);
     os_free(dataBuf);
 }
@@ -194,6 +239,304 @@ void ICACHE_FLASH_ATTR user_pre_init(void)
 	}
 }
 
+void ICACHE_FLASH_ATTR set_G_router_mode(uint8 mode)
+{
+	G_last_router_mode=G_router_mode;
+	G_router_mode=mode;
+}
+
+
+void ICACHE_FLASH_ATTR set_G_server_mode(uint8 mode)
+{
+	G_last_server_mode=G_server_mode;
+	G_server_mode=mode;
+}
+
+
+
+
+os_timer_t wifi_status_timer;
+
+/*wifi连接状态处理函数*/
+ void ICACHE_FLASH_ATTR work_status_cb(void)
+{
+	static uint8 last_router_mode;
+	static uint8 last_server_mode;
+	static uint8 i=0;
+	switch(i)// 上电后给单片机返回一些信息
+	{
+		case 0://os_printf("i=0\n");Return_Firmware_message();i++;break;
+		case 1://os_printf("i=1\n");Return_http_flag(G_https_flag);i++;break;
+		default:break;
+	}
+	if(last_router_mode != G_router_mode)
+	{
+
+		last_router_mode=G_router_mode;
+		DBG("###G_router_mode change to %d from %d!\n",G_router_mode,G_last_router_mode);
+		//Report_status(G_wifi_status);
+		switch(G_router_mode)
+			{
+			case ROUTER_DISCONNECT:
+				DBG("###ROUTER_DISCONNECT!\n");
+				WIFI_CNN_set(0);
+				//
+				set_G_server_mode(SERVER_DISCONNECT);
+				if(G_last_router_mode==SMART_CONFIG);//配置路由器断网什么都不做
+				else if(G_last_router_mode==ROUTER_CONNECT);//之前是连接状态
+				{
+					rount_res_send(0);//连接路由器失败
+				}
+				break;
+			case SMART_CONFIG:
+				DBG("###SMART_CONFIG!\n");
+				smartconfig_stop();
+				smartconfig_set_type(SC_TYPE_ESPTOUCH_AIRKISS);
+				smartconfig_start(smartconfig_done);
+				break;
+			case ROUTER_CONNECT:
+				DBG("###ROUTER_CONNECT!\n");
+				 rount_res_send(1);//连接路由器成功
+				if(G_last_router_mode==SMART_CONFIG)//配置路由器后，连接成功
+				{
+					os_timer_disarm(&config_router_fail_t);
+				}
+				if(tcp_mess.flag==0xfdc0)//如果保存了tcp服务器信息
+				{
+					//tcp_clent_conn();//连接服务器
+				}
+				break;
+			default:break;
+			}
+		last_router_mode!=G_router_mode;
+	}
+	if(last_server_mode!=G_server_mode)
+	{
+
+		last_server_mode=G_server_mode;
+		DBG("###G_server_mode change to %d from:%d!\n",G_server_mode,G_last_server_mode);
+		//Report_status(G_wifi_status);
+		switch(last_server_mode)
+			{
+			case SERVER_DISCONNECT:
+				WIFI_CNN_set(0);
+				if(tcp_mess.flag==0xfdc0)//如果保存了tcp服务器信息
+				{
+					//host_res_send(0);
+				}
+				if(G_router_mode==ROUTER_CONNECT)
+				{
+					//if(G_url_config_flag!=1)
+						//tcp_clent_conn();//连接服务器
+				}
+				break;
+			case SERVER_CONNECT:
+				WIFI_CNN_set(1);
+				//host_res_send(1);
+				break;
+			default:break;
+			}
+	}
+
+}
+
+ void ICACHE_FLASH_ATTR wifi_handle_event_cb(System_Event_t *evt)
+ {
+     uint8 i;
+
+ 	static uint32 event=0xff;
+ 	if(event!=evt->event)
+ 	{
+ 		os_printf("\n wifi_handle_event_cb event:%d\n",evt->event);
+ 		event=evt->event;
+ 	    switch(evt->event)
+ 	    {
+			case EVENT_STAMODE_GOT_IP:  //连接上路由器
+				DBG("\n ##EVENT_STAMODE_GOT_IP! \n");
+				set_G_router_mode(ROUTER_CONNECT);
+			break;
+				#if 0
+				case EVENT_STAMODE_CONNECTED:
+				break;
+				#endif
+ 		    case EVENT_STAMODE_DISCONNECTED://路由器掉线
+				DBG("\n ##EVENT_STAMODE_DISCONNECTED! \n");
+				set_G_router_mode(ROUTER_DISCONNECT);
+				/*
+				DBG("EVENT_STAMODE_DISCONNECTED!\n");
+				//break;
+				default :
+				G_wifi_status=WIFI_DISCONNECT;
+				if(G_led_mode!=SMART_CONFIG)
+				G_led_mode=DISCONNECT;
+				*/
+ 		        break;
+ 	    }
+ 	}
+ }
+
+ void ICACHE_FLASH_ATTR Sta_init(void)
+ {
+     struct station_config inf;
+
+     wifi_set_opmode(STATION_MODE);
+
+     //开始读取上一次的配置 连接路由器
+     wifi_station_get_config(&inf);
+
+     inf.bssid_set = 0;
+
+     if(os_strlen(inf.ssid))//保存有数据
+     {
+         wifi_station_connect();			 //重连成功后就不按新配置继续连接
+         wifi_station_set_auto_connect(TRUE);//打开自动连接功能
+     }
+     else//出厂设置
+     {
+     	 #if 1
+         os_sprintf(inf.ssid,FAC_TEST_SSID);
+         os_sprintf(inf.password,FAC_TEST_PASSWORD);
+         wifi_station_set_config(&inf);
+ 	     wifi_station_connect();			 //重连成功后就不按新配置继续连接
+         wifi_station_set_auto_connect(TRUE);////打开自动连接功能
+ 	     #endif
+     }
+ }
+
+
+ //用户程序调用
+void user_cb()
+{
+	//DB("####################\n");
+	os_printf("Project name:sunvalley \n");
+	os_printf("SDK version:%s\n", system_get_sdk_version());
+    os_printf("FW Compiled date:%s--%s\n",__DATE__,__TIME__);
+	os_printf("version %d.%d,running in user%d\n",MAIN_VERSION,SECONDARY_VERSION,system_upgrade_userbin_check() +1);//升级固件的话记得更改版本号
+	wifi_get_macaddr(STATION_IF,dev_mac);//获取stamac地址
+	os_sprintf(device_id,"%X%X%X%X%X%X",dev_mac[0],dev_mac[1],dev_mac[2],dev_mac[3],dev_mac[4],dev_mac[5]);
+	os_printf("mac_string:%s\n",device_id);
+
+	//gpio_inter_init();
+	//uart_proc_init();//串口数据处理
+	//tcp_client_init();//设置tcp客户端参数
+
+
+	#if 0
+	wifi_get_macaddr(STATION_IF,device_mac);//获取stamac地址
+	os_sprintf(device_id,"%02X",device_mac[0]);
+	os_sprintf(device_id+2,"%02X",device_mac[1]);
+	os_sprintf(device_id+4,"%02X",device_mac[2]);
+	os_sprintf(device_id+6,"%02X",device_mac[3]);
+	os_sprintf(device_id+8,"%02X",device_mac[4]);
+	os_sprintf(device_id+10,"%02X",device_mac[5]);
+	#endif
+
+	//read_config();//读取服务器信息
+
+	Sta_init();		//获取路由配置连接路由器
+
+	wifi_set_event_handler_cb(wifi_handle_event_cb);
+
+	os_timer_disarm(&wifi_status_timer);
+
+	os_timer_setfn(&wifi_status_timer, (os_timer_func_t *)work_status_cb, NULL);
+	os_timer_arm(&wifi_status_timer, 10, 1);
+
+	//user_wifi_led_timer_init(200);//wifi指示灯
+}
+
+
+
+//扫描结束
+void ICACHE_FLASH_ATTR scan_done(void *arg, STATUS status)
+{
+	/*
+	status代表扫描结果；
+
+	status为FAIL，代表扫描失败，比如，调用了wifi_station_connect就会出现这种情况
+	status为OK，代表扫描热点成功，
+
+	*/
+	PIN_FUNC_SELECT(WIFI_ROUTER_NAME, WIFI_ROUTER_FUNC);
+	os_printf("###scan_done :%d!\n",status);
+	if(status == OK)
+	{
+		os_printf("###scan_done OK\n");
+		struct bss_info *bss_link = (struct bss_info *)arg;
+		if(bss_link)
+		{
+			os_printf("bss_link is not null.\n");
+			if(os_memcmp(bss_link->ssid,FAC_TEST_SSID,os_strlen(bss_link->ssid))==0)
+			{
+				os_printf(" find AP factory_test success...\n");
+				os_printf("----------- Factory OK -----------\n");
+				GPIO_OUTPUT_SET(GPIO_ID_PIN(WIFI_ROUTER_NUM), 0);//打开指示灯
+				//test_counter = 0;
+				//G_factory_test = 0xF;
+				//os_timer_disarm(&factory_test_timer);
+				//os_timer_setfn(&factory_test_timer, (os_timer_func_t *)product_test_relay,0);
+				//os_timer_arm(&factory_test_timer, 500, 1);
+				//wifi指示灯常亮
+				//ra_gpio_output(PIN_WIFI_STATE_LED,WIFI_LED_ON);
+				//GPIO_OUTPUT_SET(GPIO_ID_PIN(PIN_WIFI_STATE_LED), WIFI_LED_ON);
+				//return;  //扫描到热点就直接跳出，不执行用户程序
+				os_timer_disarm(&wifi_status_timer);
+    				os_timer_setfn(&wifi_status_timer, (os_timer_func_t *)user_cb, NULL);
+    				os_timer_arm(&wifi_status_timer, 1500, 0);
+			}
+		}
+		else
+		{
+			os_printf("bss_link is  null.\n");
+			GPIO_OUTPUT_SET(GPIO_ID_PIN(WIFI_ROUTER_NUM), 1);//关闭指示灯
+			os_timer_disarm(&wifi_status_timer);			//没有产测热点，直接进用户程序
+    			os_timer_setfn(&wifi_status_timer, (os_timer_func_t *)user_cb, NULL);
+    			os_timer_arm(&wifi_status_timer, 10, 0);
+			    /*用户代码*/
+		}
+
+	}
+	else if(status ==FAIL)
+	{
+		os_printf("###scan_done fail!\n");
+	}
+}
+
+
+//工厂测试模式
+void ICACHE_FLASH_ATTR product_test_start(void)
+{
+
+	os_printf("#### sunvelly_prodct_test_start  wifi init done");
+
+	bool ret = wifi_set_opmode(STATION_MODE);
+
+	if(ret != true)
+	{
+		os_printf("set station mode failed.\n");
+	}
+
+	wifi_station_disconnect();   //scan test AP
+
+
+	struct scan_config config;
+
+	os_memset(&config,'\0',sizeof(struct scan_config));
+	config.ssid = FAC_TEST_SSID;
+
+	os_printf("product_test_start scan  factory_test AP\n");
+	ret = wifi_station_scan(&config,scan_done);
+	if(ret != true)//返回失败说明不能进入扫描，比如设置成了SOFTAP_MODE，并且不会进入scan_done，
+	{
+		os_printf("######wifi_station_scan error.\n");
+	}
+}
+
+
+
+
+
+
 /******************************************************************************
  * FunctionName : user_init
  * Description  : entry of user application, init user function here
@@ -207,11 +550,7 @@ user_init(void)
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
 	UART_SetPrintPort(1);                                // 切换串口1为debug  对应node mcu D4 引脚
 
-
-
 	uart0_sendStr("\r\n-------------zmy hello world");
-
-
 
     partition_item_t partition_item;
     os_printf("SDK version:%s\n", system_get_sdk_version());
@@ -242,6 +581,12 @@ user_init(void)
     //user_webserver_init(SERVER_PORT);
 #endif
 
+
+    system_init_done_cb(product_test_start);               //初始化
+
+
+
+#if 0
        CFG_Load();
 
        MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
@@ -261,10 +606,8 @@ user_init(void)
        INFO("\r\nSystem started ...\r\n");
 
 
-
-
-
-
+       system_init_done_cb(product_test_start);
+#endif
 
 
 }

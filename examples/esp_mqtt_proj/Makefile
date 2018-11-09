@@ -122,7 +122,7 @@ DDEFINES +=				\
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)include/mqtt -I $(PDIR)include/modules -I $(PDIR)mqtt -I $(PDIR)modules
+INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)include/mqtt -I $(PDIR)include/modules 
 PDIR := ../$(PDIR)
 sinclude $(PDIR)Makefile
 

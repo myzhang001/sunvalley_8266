@@ -25,4 +25,6 @@
  /opt/xtensa-lx106-elf/lib/gcc/xtensa-lx106-elf/4.8.2/include/alloca.h \
  ../include/mqtt/typedef.h ../include/modules/wifi.h \
  ../include/modules/config.h ../include/mqtt/debug.h ../../include/gpio.h \
- ../../include/mem.h ../../include/sntp.h ../include/user_esp_platform.h
+ ../../include/mem.h ../../include/sntp.h ../include/common.h \
+ ../../include/smartconfig.h ../include/user_airkiss.h \
+ ../include/user_esp_platform.h

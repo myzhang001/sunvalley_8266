@@ -223,6 +223,7 @@ uart0_rx_intr_handler(void *para)
     /* uart0 and uart1 intr combine togther, when interrupt occur, see reg 0x3ff20020, bit2, bit0 represents
     * uart1 and uart0 respectively
     */
+
     uint8 RcvChar;
     uint8 uart_no = UART0;//UartDev.buff_uart_no;
     uint8 fifo_len = 0;
@@ -265,7 +266,6 @@ uart0_rx_intr_handler(void *para)
         WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_OVF_INT_CLR);
         DBG1("RX OVF!!\r\n");
     }
-
 }
 
 /******************************************************************************
@@ -300,6 +300,9 @@ uart_recvTask(os_event_t *events)
         for(idx=0;idx<fifo_len;idx++) {
             d_tmp = READ_PERI_REG(UART_FIFO(UART0)) & 0xFF;
             //uart_tx_one_char(UART0, d_tmp);
+            //uart_tx_one_char(UART0, d_tmp);
+
+
         }
         WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR|UART_RXFIFO_TOUT_INT_CLR);
         uart_rx_intr_enable(UART0);
@@ -349,6 +352,14 @@ uart_init(UartBautRate uart0_br, UartBautRate uart1_br)
     os_timer_setfn(&buff_timer_t, uart_test_rx , NULL);   //a demo to process the data in uart rx buffer
     os_timer_arm(&buff_timer_t,10,1);
     #endif
+
+
+	/*
+	*  注册串口接收一个字符的回调函数
+	*/
+	uart_receive_callback_regist(uart_char_cb);
+
+
 }
 
 void ICACHE_FLASH_ATTR

@@ -49,6 +49,9 @@
 #include "user_airkiss.h"
 #include "osapi.h"
 #include "os_type.h"
+#include "uart_proc.h"
+
+
 
 
 #define FAC_TEST_SSID     "TP-LINK_2.4G"
@@ -271,7 +274,6 @@ os_timer_t wifi_status_timer;
 	}
 	if(last_router_mode != G_router_mode)
 	{
-
 		last_router_mode=G_router_mode;
 		DBG("###G_router_mode change to %d from %d!\n",G_router_mode,G_last_router_mode);
 		//Report_status(G_wifi_status);
@@ -301,14 +303,14 @@ os_timer_t wifi_status_timer;
 				{
 					os_timer_disarm(&config_router_fail_t);
 				}
-				if(tcp_mess.flag==0xfdc0)//如果保存了tcp服务器信息
+				if(tcp_mess.flag == 0xfdc0)//如果保存了tcp服务器信息
 				{
 					//tcp_clent_conn();//连接服务器
 				}
 				break;
 			default:break;
 			}
-		last_router_mode!=G_router_mode;
+		last_router_mode != G_router_mode;
 	}
 	if(last_server_mode!=G_server_mode)
 	{
@@ -327,12 +329,18 @@ os_timer_t wifi_status_timer;
 				if(G_router_mode==ROUTER_CONNECT)
 				{
 					//if(G_url_config_flag!=1)
-						//tcp_clent_conn();//连接服务器
+					//tcp_clent_conn();//连接服务器
 				}
+
+				DBG("###-------  zmy  SERVER_DISCONNECT!\n");
+
 				break;
 			case SERVER_CONNECT:
 				WIFI_CNN_set(1);
 				//host_res_send(1);
+
+				DBG("###-------  zmy  SERVER_CONNECT!\n");
+
 				break;
 			default:break;
 			}
@@ -355,10 +363,11 @@ os_timer_t wifi_status_timer;
 				DBG("\n ##EVENT_STAMODE_GOT_IP! \n");
 				set_G_router_mode(ROUTER_CONNECT);
 			break;
-				#if 0
-				case EVENT_STAMODE_CONNECTED:
-				break;
-				#endif
+
+			case EVENT_STAMODE_CONNECTED:
+				DBG("\n ##EVENT_STAMODE_CONNECTED! \n");
+			break;
+
  		    case EVENT_STAMODE_DISCONNECTED://路由器掉线
 				DBG("\n ##EVENT_STAMODE_DISCONNECTED! \n");
 				set_G_router_mode(ROUTER_DISCONNECT);

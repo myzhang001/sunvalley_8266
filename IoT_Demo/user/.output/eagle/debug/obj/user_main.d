@@ -27,4 +27,4 @@
  ../include/modules/config.h ../include/mqtt/debug.h ../../include/gpio.h \
  ../../include/mem.h ../../include/sntp.h ../include/common.h \
  ../../include/smartconfig.h ../include/user_airkiss.h \
- ../include/user_esp_platform.h
+ ../include/uart_proc.h ../include/user_esp_platform.h

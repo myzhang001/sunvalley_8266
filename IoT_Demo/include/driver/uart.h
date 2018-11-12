@@ -39,6 +39,9 @@
 #define UART_HW_CTS  0    //set1: enable uart hw flow contrl CTS , PIN MTCK, FOR UART0
 
 
+#define RX_BUFF_SIZE    0x100
+#define TX_BUFF_SIZE    100
+
 
 
 #define UART0   0

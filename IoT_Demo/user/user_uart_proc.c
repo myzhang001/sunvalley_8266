@@ -1,12 +1,12 @@
 
 #include "user_uart_proc.h"
-#include "c_types.h"
+
+#include "driver/uart.h"
 
 
 
 
-
-LOCAL uart_receive_callback uart_receive_callback_handle = NULL;
+ uart_receive_callback uart_receive_callback_handle = NULL;
 
 
 

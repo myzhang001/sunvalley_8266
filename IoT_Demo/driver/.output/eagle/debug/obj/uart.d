@@ -14,4 +14,4 @@
  ../include/driver/uart.h ../include/driver/uart_register.h \
  ../../include/eagle_soc.h ../../include/c_types.h \
  ../include/driver/uart_register.h ../../include/mem.h \
- ../../include/os_type.h
+ ../../include/os_type.h ../include/user_uart_proc.h

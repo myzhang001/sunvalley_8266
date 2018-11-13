@@ -29,6 +29,10 @@
 #include "driver/uart_register.h"
 #include "mem.h"
 #include "os_type.h"
+#include "user_uart_proc.h"
+
+
+
 
 // UartDev is defined and initialized in rom code.
 extern UartDevice    UartDev;
@@ -39,7 +43,7 @@ LOCAL struct UartBuffer* pRxBuffer = NULL;
 /*uart demo with a system task, to output what uart receives*/
 /*this is a example to process uart data from task,please change the priority to fit your application task if exists*/
 /*it might conflict with your task, if so,please arrange the priority of different task,  or combine it to a different event in the same task. */
-#define uart_recvTaskPrio        0
+#define uart_recvTaskPrio        1
 #define uart_recvTaskQueueLen    10
 os_event_t    uart_recvTaskQueue[uart_recvTaskQueueLen];
 
@@ -49,6 +53,42 @@ os_event_t    uart_recvTaskQueue[uart_recvTaskQueueLen];
 
 
 LOCAL void uart0_rx_intr_handler(void *para);
+
+#define UART_RECEIVE_EVT 1		    //串口接收完成事件
+
+#define UART_BUF_LENGTH 200
+static uint8_t uart_buf[UART_BUF_LENGTH] __attribute__((aligned(4)));
+static uint8_t uart_buf_index;
+static uint8_t uart_state;
+
+
+//
+void ICACHE_FLASH_ATTR uart_char_cb(uint8_t data)
+{
+	if (uart_state == 0)
+	{
+		if (data == '\r' || data == '\n')
+		{
+			uart_buf[uart_buf_index] = 0;
+			uart_state = 1;	//串口接收完成
+			uart_buf_index = 0;	// 下标清0
+			system_os_post(uart_recvTaskPrio, UART_RECEIVE_EVT, 0);
+		}
+		else
+		{
+			uart_buf[uart_buf_index] = data;
+			uart_buf_index = (uart_buf_index + 1) % UART_BUF_LENGTH;         //越界后自动从0开始
+		}
+	}
+}
+
+
+
+
+
+
+
+
 
 /******************************************************************************
  * FunctionName : uart_config
@@ -300,14 +340,20 @@ uart_recvTask(os_event_t *events)
         for(idx=0;idx<fifo_len;idx++) {
             d_tmp = READ_PERI_REG(UART_FIFO(UART0)) & 0xFF;
             //uart_tx_one_char(UART0, d_tmp);
-            //uart_tx_one_char(UART0, d_tmp);
-
-
+            if (uart_receive_callback_handle)
+			{
+				uart_receive_callback_handle(d_tmp);
+			}
         }
         WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR|UART_RXFIFO_TOUT_INT_CLR);
         uart_rx_intr_enable(UART0);
     #endif
     }else if(events->sig == 1){
+
+    	//解析 uart 数据
+
+    	uart_state = 0;	// 串口状态位清除
+
     #if UART_BUFF_EN
 	 //already move uart buffer output to uart empty interrupt
         //tx_start_uart_buffer(UART0);
@@ -358,8 +404,6 @@ uart_init(UartBautRate uart0_br, UartBautRate uart1_br)
 	*  注册串口接收一个字符的回调函数
 	*/
 	uart_receive_callback_regist(uart_char_cb);
-
-
 }
 
 void ICACHE_FLASH_ATTR

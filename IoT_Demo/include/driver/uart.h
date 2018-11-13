@@ -209,6 +209,8 @@ void  uart_rx_intr_enable(uint8 uart_no);
 void  uart_rx_intr_disable(uint8 uart_no);
 void uart0_tx_buffer(uint8 *buf, uint16 len);
 
+void  uart_char_cb(uint8_t data);
+
 //==============================================
 #define FUNC_UART0_CTS 4
 #define FUNC_U0CTS                      4

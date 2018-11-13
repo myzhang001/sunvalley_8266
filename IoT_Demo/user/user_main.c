@@ -440,9 +440,12 @@ void user_cb()
 	os_sprintf(device_id+10,"%02X",device_mac[5]);
 	#endif
 
-	//read_config();//读取服务器信息
+	//read_config();    //读取服务器信息
 
-	Sta_init();		//获取路由配置连接路由器
+	Sta_init();		    //获取路由配置连接路由器
+
+	tcp_client_init();  //建立客户端和服务器通信
+
 
 	wifi_set_event_handler_cb(wifi_handle_event_cb);
 

@@ -351,8 +351,11 @@ uart_recvTask(os_event_t *events)
     }else if(events->sig == 1){
 
     	//解析 uart 数据
-
+        os_printf("\r\n---------------- zmy  recv ok ");
     	uart_state = 0;	// 串口状态位清除
+
+    	set_G_router_mode(2);
+
 
     #if UART_BUFF_EN
 	 //already move uart buffer output to uart empty interrupt

@@ -9,6 +9,10 @@
 os_timer_t checkTimer_wifistate;
 struct espconn user_tcp_conn;
 
+
+
+
+
 void ICACHE_FLASH_ATTR user_tcp_sent_cb(void *arg)  //发送
 {
 	os_printf("发送数据成功！");
@@ -71,15 +75,15 @@ void Check_WifiState(void) {
 void tcp_client_init()	//初始化
 {
 
-#if 0               			//网络连接
-	wifi_set_opmode(0x01);	//设置为STATION模式
+	#if 0               			//网络连接
+		wifi_set_opmode(0x01);	//设置为STATION模式
 
-	struct station_config stationConf;
-	os_strcpy(stationConf.ssid, "meizu");	  //改成你自己的   路由器的用户名
-	os_strcpy(stationConf.password, "12345678"); //改成你自己的   路由器的密码
-	wifi_station_set_config(&stationConf);	//设置WiFi station接口配置，并保存到 flash
-	wifi_station_connect();	//连接路由器
-#endif
+		struct station_config stationConf;
+		os_strcpy(stationConf.ssid, "meizu");	  //改成你自己的   路由器的用户名
+		os_strcpy(stationConf.password, "12345678"); //改成你自己的   路由器的密码
+		wifi_station_set_config(&stationConf);	//设置WiFi station接口配置，并保存到 flash
+		wifi_station_connect();	//连接路由器
+	#endif
 
 	os_timer_disarm(&checkTimer_wifistate);	//取消定时器定时
 	os_timer_setfn(&checkTimer_wifistate, (os_timer_func_t *) Check_WifiState,

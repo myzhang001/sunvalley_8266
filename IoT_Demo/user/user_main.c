@@ -53,9 +53,16 @@
 
 
 
+#if 0
+#define FAC_TEST_SSID     "Sunvalley-Office-E7"
+#define FAC_TEST_PASSWORD "near#work123"
 
+#else
 #define FAC_TEST_SSID     "TP-LINK_2.4G"
 #define FAC_TEST_PASSWORD "abcdef1234"
+
+#endif
+
 
 
 
@@ -242,10 +249,13 @@ void ICACHE_FLASH_ATTR user_pre_init(void)
 	}
 }
 
+
+
+//设置路由器模式
 void ICACHE_FLASH_ATTR set_G_router_mode(uint8 mode)
 {
-	G_last_router_mode=G_router_mode;
-	G_router_mode=mode;
+	G_last_router_mode = G_router_mode;
+	G_router_mode 	   = mode;
 }
 
 
@@ -388,10 +398,10 @@ os_timer_t wifi_status_timer;
  {
      struct station_config inf;
 
-     wifi_set_opmode(STATION_MODE);
+     wifi_set_opmode(STATION_MODE);         //设置为sta 模式
 
      //开始读取上一次的配置 连接路由器
-     wifi_station_get_config(&inf);
+     wifi_station_get_config(&inf);         //上一次保存的wifi 账号和密码
 
      inf.bssid_set = 0;
 
@@ -425,6 +435,39 @@ void user_cb()
 	os_sprintf(device_id,"%X%X%X%X%X%X",dev_mac[0],dev_mac[1],dev_mac[2],dev_mac[3],dev_mac[4],dev_mac[5]);
 	os_printf("mac_string:%s\n",device_id);
 
+
+	//打印出文件启动的区域
+	if(system_upgrade_userbin_check() == UPGRADE_FW_BIN1)
+	{
+		os_printf("---sys run from bin1---\n");
+	}
+	else if (system_upgrade_userbin_check() == UPGRADE_FW_BIN2)
+	{
+		os_printf("---sys run from bin2---\n");
+	}
+
+
+	system_set_os_print(1);//disable when release
+
+
+	struct rst_info *rst_info = system_get_rst_info();
+
+	DBG("reset reason: %x\n", rst_info->reason);
+
+	if(rst_info->reason == REASON_WDT_RST || rst_info->reason == REASON_EXCEPTION_RST || rst_info->reason == REASON_SOFT_WDT_RST)
+	{
+		if (rst_info->reason == REASON_EXCEPTION_RST)
+		{
+			DBG("Fatal exception (%d):\n", rst_info->exccause);
+		}
+		DBG("epc1=0x%08x, epc2=0x%08x, epc3=0x%08x, excvaddr=0x%08x, depc=0x%08x\n",
+			rst_info->epc1, rst_info->epc2, rst_info->epc3, rst_info->excvaddr, rst_info->depc);
+	}
+
+
+
+
+
 	//gpio_inter_init();
 	//uart_proc_init();//串口数据处理
 	//tcp_client_init();//设置tcp客户端参数
@@ -449,8 +492,10 @@ void user_cb()
 
 	wifi_set_event_handler_cb(wifi_handle_event_cb);
 
-	os_timer_disarm(&wifi_status_timer);
 
+
+
+	os_timer_disarm(&wifi_status_timer);
 	os_timer_setfn(&wifi_status_timer, (os_timer_func_t *)work_status_cb, NULL);
 	os_timer_arm(&wifi_status_timer, 10, 1);
 

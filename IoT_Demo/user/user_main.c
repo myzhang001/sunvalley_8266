@@ -176,6 +176,7 @@ void wifiConnectCb(uint8_t status)
 {
     if(status == STATION_GOT_IP){
         sntp_setservername(0, "cn.pool.ntp.org");        // set sntp server after got ip address
+        sntp_setservername(1, "tw.pool.ntp.org");        // set sntp server after got ip address
         sntp_init();
         os_timer_disarm(&sntp_timer);
         os_timer_setfn(&sntp_timer, (os_timer_func_t *)sntpfn, NULL);
@@ -192,10 +193,15 @@ void mqttConnectedCb(uint32_t *args)
     MQTT_Subscribe(client, "/mqtt/topic/0", 0);
     MQTT_Subscribe(client, "/mqtt/topic/1", 1);
     MQTT_Subscribe(client, "/mqtt/topic/2", 2);
+    MQTT_Subscribe(client, "/alexa/input", 2);
+
 
     MQTT_Publish(client, "/mqtt/topic/0", "hello0", 6, 0, 0);
     MQTT_Publish(client, "/mqtt/topic/1", "hello1", 6, 1, 0);
     MQTT_Publish(client, "/mqtt/topic/2", "hello2", 6, 2, 0);
+    MQTT_Publish(client, "/alexa/input", "hello2", 6, 2, 0);
+
+
 
 }
 
@@ -639,11 +645,11 @@ user_init(void)
 #endif
 
 
-    system_init_done_cb(product_test_start);               //初始化
+    //system_init_done_cb(product_test_start);               //初始化
 
 
 
-#if 0
+#if 1
        CFG_Load();
 
        MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
@@ -658,12 +664,13 @@ user_init(void)
        MQTT_OnPublished(&mqttClient, mqttPublishedCb);
        MQTT_OnData(&mqttClient, mqttDataCb);
 
-       WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);
+       WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);         //wifi连接标志位
 
        INFO("\r\nSystem started ...\r\n");
 
 
-       system_init_done_cb(product_test_start);
+       system_init_done_cb(product_test_start);             //初始化完成 回调函数
+
 #endif
 
 

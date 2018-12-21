@@ -11,11 +11,11 @@ typedef enum{
 
 /*IMPORTANT: the following configuration maybe need modified*/
 /***********************************************************************************************************************/
-#define CFG_HOLDER    0x00FF55A5    /* Change this value to load default configurations */
+#define CFG_HOLDER    0x00FF55A4    /* Change this value to load default configurations */
 
 /*DEFAULT CONFIGURATIONS*/
 
-#define MQTT_HOST            "192.168.0.121" // the IP address or domain name of your MQTT server or MQTT broker ,such as "mqtt.yourdomain.com"
+#define MQTT_HOST            "192.168.0.131" // the IP address or domain name of your MQTT server or MQTT broker ,such as "mqtt.yourdomain.com"
 #define MQTT_PORT            1883    // the listening port of your MQTT server or MQTT broker
 #define MQTT_CLIENT_ID        "sunnvelly_esp8266"    // the ID of yourself, any string is OK,client would use this ID register itself to MQTT server
 #define MQTT_USER            "admin" // your MQTT login name, if MQTT server allow anonymous login,any string is OK, otherwise, please input valid login name which you had registered

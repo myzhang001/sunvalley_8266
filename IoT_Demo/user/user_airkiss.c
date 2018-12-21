@@ -156,14 +156,17 @@ void ICACHE_FLASH_ATTR smartconfig_done(sc_status status, void *pdata)
         os_printf("SC_STATUS_LINK,start link\n");
         struct station_config *sta_conf = pdata;
 
-        wifi_station_set_config(sta_conf);
-        wifi_station_disconnect();
-        wifi_station_connect();
-        wifi_station_set_auto_connect(TRUE);////打开自动连接功能
-        rount_timer_init();//设置30秒后返回配置失败
+		os_printf("\r\n start link zmy ssid %s",sta_conf->ssid);
+		os_printf("\r\n start link zmy paaswd %s",sta_conf->password);
+		
         break;
     case SC_STATUS_LINK_OVER:
         os_printf("SC_STATUS_LINK_OVER\n");
+
+		struct station_config *s_sta_conf = pdata;
+		
+        os_printf("\r\n link_over zmy ssid %s",s_sta_conf->ssid);
+		os_printf("\r\n link_over zmy paaswd %s",s_sta_conf->password);
         if(pdata != NULL)
         {
             uint8 phone_ip[4] = {0};
@@ -174,6 +177,16 @@ void ICACHE_FLASH_ATTR smartconfig_done(sc_status status, void *pdata)
             	//SC_TYPE_AIRKISS - support airkiss v2.0
 				//airkiss_start_discover();
             }
+
+            //保存下配置成功的ssid 和passwd
+#if 1
+			wifi_station_set_config(s_sta_conf);
+			wifi_station_disconnect();
+			wifi_station_connect();
+			wifi_station_set_auto_connect(TRUE);////打开自动连接功能
+			
+#endif
+            
         smartconfig_stop();
         os_timer_disarm(&rount_t);//关掉配置失败的定时器
         break;

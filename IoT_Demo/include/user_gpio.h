@@ -4,7 +4,7 @@
 extern os_timer_t rount_t;
 
 void ICACHE_FLASH_ATTR rount_timer_func();
-void ICACHE_FLASH_ATTR rount_timer_init(void);
+void ICACHE_FLASH_ATTR rount_timer_init(uint8 time_out);
 void ICACHE_FLASH_ATTR rount_res_send(uint8 res);
 //void ICACHE_FLASH_ATTR host_res_send(uint8 res);
 void ICACHE_FLASH_ATTR WIFI_CNN_set(uint8 level);

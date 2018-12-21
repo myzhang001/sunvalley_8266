@@ -60,7 +60,6 @@
 #else
 #define FAC_TEST_SSID     "TP-LINK_2.4G"
 #define FAC_TEST_PASSWORD "abcdef1234"
-
 #endif
 
 
@@ -271,7 +270,41 @@ void ICACHE_FLASH_ATTR set_G_server_mode(uint8 mode)
 	G_server_mode=mode;
 }
 
+/*
+	smart_config 函数设置
+*/
+void ICACHE_FLASH_ATTR smart_config(int32 time_out)
+{
+	DBG("smart config ver=%s\n",smartconfig_get_version());
 
+	wifi_station_disconnect();//停止连接
+    wifi_station_set_auto_connect(FALSE);
+	DEBUG();
+
+
+    system_soft_wdt_feed();
+    smartconfig_stop();
+    system_soft_wdt_feed();
+
+    smartconfig_set_type(SC_TYPE_ESPTOUCH);
+
+    if(wifi_get_opmode() != STATION_MODE)//sta mode
+    {
+        wifi_set_opmode(STATION_MODE);
+    }
+
+    esptouch_set_timeout(time_out);
+
+    system_soft_wdt_feed();
+    
+    smartconfig_start(smartconfig_done);     //进入绑定
+    
+	rount_timer_init(time_out);              //设置超时绑定时间  
+
+    DEBUG();
+    system_soft_wdt_feed();
+
+}
 
 
 os_timer_t wifi_status_timer;
@@ -282,15 +315,10 @@ os_timer_t wifi_status_timer;
 	static uint8 last_router_mode;
 	static uint8 last_server_mode;
 	static uint8 i=0;
-	switch(i)// 上电后给单片机返回一些信息
+	
+	if(last_router_mode != G_router_mode)      // 连接路由状态发生了改变
 	{
-		case 0://os_printf("i=0\n");Return_Firmware_message();i++;break;
-		case 1://os_printf("i=1\n");Return_http_flag(G_https_flag);i++;break;
-		default:break;
-	}
-	if(last_router_mode != G_router_mode)
-	{
-		last_router_mode=G_router_mode;
+		last_router_mode= G_router_mode;
 		DBG("###G_router_mode change to %d from %d!\n",G_router_mode,G_last_router_mode);
 		//Report_status(G_wifi_status);
 		switch(G_router_mode)
@@ -308,9 +336,14 @@ os_timer_t wifi_status_timer;
 				break;
 			case SMART_CONFIG:
 				DBG("###SMART_CONFIG!\n");
+
+				smart_config(120);
+
+				#if 0
 				smartconfig_stop();
 				smartconfig_set_type(SC_TYPE_ESPTOUCH_AIRKISS);
 				smartconfig_start(smartconfig_done);
+				#endif
 				break;
 			case ROUTER_CONNECT:
 				DBG("###ROUTER_CONNECT!\n");
@@ -413,8 +446,12 @@ os_timer_t wifi_status_timer;
 
      if(os_strlen(inf.ssid))//保存有数据
      {
-         wifi_station_connect();			 //重连成功后就不按新配置继续连接
-         wifi_station_set_auto_connect(TRUE);//打开自动连接功能
+
+		os_printf("\r\n zmy_debug  ssid %s ", inf.ssid);
+		os_printf("\r\n zmy_debug  password %s ", inf.password);
+
+		wifi_station_connect();			 //重连成功后就不按新配置继续连接
+		wifi_station_set_auto_connect(TRUE);//打开自动连接功能
      }
      else//出厂设置
      {
@@ -471,13 +508,9 @@ void user_cb()
 	}
 
 
-
-
-
-	//gpio_inter_init();
-	//uart_proc_init();//串口数据处理
-	//tcp_client_init();//设置tcp客户端参数
-
+	gpio_inter_init();      //按键处理程序
+	//uart_proc_init();		//串口数据处理
+	//tcp_client_init();	//设置tcp客户端参数
 
 	#if 0
 	wifi_get_macaddr(STATION_IF,device_mac);//获取stamac地址
@@ -489,21 +522,22 @@ void user_cb()
 	os_sprintf(device_id+10,"%02X",device_mac[5]);
 	#endif
 
+    #if 1
 	//read_config();    //读取服务器信息
 
 	Sta_init();		    //获取路由配置连接路由器
 
-	tcp_client_init();  //建立客户端和服务器通信
-
+	//tcp_client_init();  //建立客户端和服务器通信
 
 	wifi_set_event_handler_cb(wifi_handle_event_cb);
 
-
-
-
+	#if 1
 	os_timer_disarm(&wifi_status_timer);
 	os_timer_setfn(&wifi_status_timer, (os_timer_func_t *)work_status_cb, NULL);
 	os_timer_arm(&wifi_status_timer, 10, 1);
+	#endif
+	
+	#endif
 
 	//user_wifi_led_timer_init(200);//wifi指示灯
 }
@@ -521,6 +555,7 @@ void ICACHE_FLASH_ATTR scan_done(void *arg, STATUS status)
 
 	*/
 	PIN_FUNC_SELECT(WIFI_ROUTER_NAME, WIFI_ROUTER_FUNC);
+	
 	os_printf("###scan_done :%d!\n",status);
 	if(status == OK)
 	{
@@ -599,7 +634,6 @@ void ICACHE_FLASH_ATTR product_test_start(void)
 
 
 
-
 /******************************************************************************
  * FunctionName : user_init
  * Description  : entry of user application, init user function here
@@ -609,11 +643,10 @@ void ICACHE_FLASH_ATTR product_test_start(void)
 void ICACHE_FLASH_ATTR
 user_init(void)
 {
-
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
 	UART_SetPrintPort(1);                                // 切换串口1为debug  对应node mcu D4 引脚
 
-	uart0_sendStr("\r\n-------------zmy hello world");
+	uart0_sendStr("\r\n-------------zmy hello world ---------");
 
     partition_item_t partition_item;
     os_printf("SDK version:%s\n", system_get_sdk_version());
@@ -644,11 +677,9 @@ user_init(void)
     //user_webserver_init(SERVER_PORT);
 #endif
 
-
-    //system_init_done_cb(product_test_start);               //初始化
-
-
-
+		
+	   system_init_done_cb(product_test_start);               //初始化
+	
 #if 1
        CFG_Load();
 
@@ -664,15 +695,10 @@ user_init(void)
        MQTT_OnPublished(&mqttClient, mqttPublishedCb);
        MQTT_OnData(&mqttClient, mqttDataCb);
 
-       WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);         //wifi连接标志位
+       //WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);         //wifi连接标志位
 
        INFO("\r\nSystem started ...\r\n");
-
-
-       system_init_done_cb(product_test_start);             //初始化完成 回调函数
-
+       
 #endif
-
-
 }
 

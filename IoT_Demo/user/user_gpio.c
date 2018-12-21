@@ -30,19 +30,28 @@ void ICACHE_FLASH_ATTR
 wifi_conn_func();
 
 
+
 void ICACHE_FLASH_ATTR
 rount_timer_func()//连接路由器失败
 {
-    rount_res_send(0);
+	DBG("\r\n ----zmy   smart smart_config  timeout ");
+	
+	smartconfig_stop();                    
+	wifi_set_opmode(STATION_MODE);		   //设置为sta 模式
+
+	wifi_station_connect();
+	wifi_station_set_auto_connect(TRUE);////打开自动连接功能
+
+    //rount_res_send(0);
     //ROUTCFG_flag=0;
 }
 
 void ICACHE_FLASH_ATTR
-rount_timer_init(void)
+rount_timer_init(uint8 time_out)
 {
     os_timer_disarm(&config_router_fail_t);
     os_timer_setfn(&config_router_fail_t,(os_timer_func_t *)rount_timer_func,NULL);
-    os_timer_arm(&config_router_fail_t,30*1000,0);
+    os_timer_arm(&config_router_fail_t,time_out*1000,0);
 }
 
 
@@ -95,7 +104,6 @@ user_gpio_init()
 #if 0
     GPIO_OUTPUT_SET(GPIO_ID_PIN(WIFI_URLCFG_NUM),0);
     GPIO_OUTPUT_SET(GPIO_ID_PIN(WIFI_ROUTER_NUM),0);
-
 #else
     GPIO_DIS_OUTPUT(GPIO_ID_PIN(WIFI_URLCFG_NUM));//设置为输入
     GPIO_DIS_OUTPUT(GPIO_ID_PIN(WIFI_ROUTER_NUM));//设置为输入
@@ -107,6 +115,7 @@ user_gpio_init()
 
 }
 //uint8 WIFI_URLCFG_flag=0;
+
 void ICACHE_FLASH_ATTR
 user_key_intr_handler()
 {
@@ -115,40 +124,32 @@ user_key_intr_handler()
     //   ETS_GPIO_INTR_DISABLE();
     if (gpio_status & BIT(GPIO_ID_PIN(WIFI_ROUTER_NUM)))
     {
-    	DB("\n enter WIFI_ROUTER_NUM ir!\n");
-        GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(GPIO_ID_PIN(WIFI_ROUTER_NUM)));
-	set_G_router_mode(SMART_CONFIG);
+		DB("\n enter WIFI_ROUTER_NUM ir!\n");
+		GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(GPIO_ID_PIN(WIFI_ROUTER_NUM)));
+		set_G_router_mode(SMART_CONFIG);
     }
-	
     else if (gpio_status & BIT(GPIO_ID_PIN(WIFI_URLCFG_NUM)))//配置服务器
     {
-        DB("\n enter WIFI_URLCFG_NUM ir!\n");
-	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(GPIO_ID_PIN(WIFI_URLCFG_NUM))); 
-	G_url_config_flag=1;
-	espconn_disconnect(&tcp_client);
-	//set_G_server_mode(SERVER_CONFIG);
+		DB("\n enter WIFI_URLCFG_NUM ir!\n");
+		GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(GPIO_ID_PIN(WIFI_URLCFG_NUM))); 
+		G_url_config_flag=1;
+		espconn_disconnect(&tcp_client);
+		//set_G_server_mode(SERVER_CONFIG);
     }
-
-    
-
     // ETS_GPIO_INTR_ENABLE();
-
-
-
 }
 void ICACHE_FLASH_ATTR
 gpio_inter_init()  //开io口中断
 {
     ETS_GPIO_INTR_ATTACH(user_key_intr_handler, NULL);
 
-    ETS_GPIO_INTR_DISABLE();//关闭gpio中断
+    ETS_GPIO_INTR_DISABLE();		//关闭gpio中断
 
-    user_gpio_init();//gpio初始化
-
+    user_gpio_init();				//gpio初始化
 
     gpio_pin_intr_state_set(GPIO_ID_PIN(WIFI_ROUTER_NUM),GPIO_PIN_INTR_POSEDGE);//配置上升沿中断
     gpio_pin_intr_state_set(GPIO_ID_PIN(WIFI_URLCFG_NUM),GPIO_PIN_INTR_POSEDGE);
-    ETS_GPIO_INTR_ENABLE();//使能gpio中断
+    ETS_GPIO_INTR_ENABLE();			//使能gpio中断
 }
 
 

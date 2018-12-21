@@ -86,8 +86,7 @@ void tcp_client_init()	//初始化
 	#endif
 
 	os_timer_disarm(&checkTimer_wifistate);	//取消定时器定时
-	os_timer_setfn(&checkTimer_wifistate, (os_timer_func_t *) Check_WifiState,
-	NULL);	//设置定时器回调函数
+	os_timer_setfn(&checkTimer_wifistate, (os_timer_func_t *) Check_WifiState,NULL);	//设置定时器回调函数
 	os_timer_arm(&checkTimer_wifistate, 500, 1);	//启动定时器，单位：毫秒
 }
 

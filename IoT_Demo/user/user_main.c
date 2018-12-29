@@ -64,10 +64,16 @@
 
 
 
-
 uint8_t G_online_mode;//0断网，1连上服务器
 uint8_t dev_mac[6];//mac地址,hex
 uint8_t device_id[13];//mac地址，字符串
+
+
+
+//***************************************** MQTT ************************************
+#define PRODUCT_KEY   "a1E31Zmhcxo"										   //产品key
+#define DEVICE_NAME   "QSUvUO7V5lxwJsOHgyHc"                               //设备名称
+#define DEVICE_SECRET "O6iyf0lnZXJQEyHdyMGPASkEamb5cDEi"                   //设备密码
 
 
 
@@ -123,10 +129,9 @@ uint32 priv_param_start_sec;
 
 
 
-
-MQTT_Client mqttClient;
+MQTT_Client      mqttClient;
 typedef unsigned long u32_t;
-static ETSTimer sntp_timer;
+static ETSTimer  sntp_timer;
 
 
 /*sbsq_toothbrush*/
@@ -632,6 +637,34 @@ void ICACHE_FLASH_ATTR product_test_start(void)
 
 
 
+void ICACHE_FLASH_ATTR mqtt_init(void)
+{
+	CFG_Load();                                //用于保存服务器地址和连接端口
+
+	MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
+	//MQTT_InitConnection(&mqttClient, "192.168.11.122", 1880, 0);
+
+	MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
+	//MQTT_InitClient(&mqttClient, "client_id", "user", "pass", 120, 1);
+
+	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
+	MQTT_OnConnected(&mqttClient, mqttConnectedCb);
+	MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
+	MQTT_OnPublished(&mqttClient, mqttPublishedCb);
+	MQTT_OnData(&mqttClient, mqttDataCb);
+
+	//WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);         //wifi连接标志位
+
+	INFO("\r\nSystem started ...\r\n");
+
+}
+
+
+
+void ICACHE_FLASH_ATTR user_init(void)
+{
+	mqtt_init();                  
+}
 
 
 /******************************************************************************
@@ -677,28 +710,8 @@ user_init(void)
     //user_webserver_init(SERVER_PORT);
 #endif
 
-		
-	   system_init_done_cb(product_test_start);               //初始化
+	user_init();                                           //用户程序初始化
+	system_init_done_cb(product_test_start);               //初始化
 	
-#if 1
-       CFG_Load();
-
-       MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
-       //MQTT_InitConnection(&mqttClient, "192.168.11.122", 1880, 0);
-
-       MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
-       //MQTT_InitClient(&mqttClient, "client_id", "user", "pass", 120, 1);
-
-       MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
-       MQTT_OnConnected(&mqttClient, mqttConnectedCb);
-       MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
-       MQTT_OnPublished(&mqttClient, mqttPublishedCb);
-       MQTT_OnData(&mqttClient, mqttDataCb);
-
-       //WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);         //wifi连接标志位
-
-       INFO("\r\nSystem started ...\r\n");
-       
-#endif
 }
 

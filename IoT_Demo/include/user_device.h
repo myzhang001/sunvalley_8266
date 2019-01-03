@@ -2,15 +2,19 @@
 #define __user_device_h
 
 
+#include "c_types.h"
+#include "common.h"
+
+
 
 /* From device.h */
-#define PRODUCT_KEY_LEN     (20)                   
+#define PRODUCT_KEY_LEN     (20)                     
 #define DEVICE_NAME_LEN     (32)					 /*设备名字*/
 #define DEVICE_ID_LEN       (64)                     /*设备ID 长度*/
 #define DEVICE_SECRET_LEN   (64)                     /*密码长度*/
 #define PRODUCT_SECRET_LEN  (64)                     /*产品密钥*/
 
-#define LINKKIT_VERSION     "2.2.1"
+#define PROTOCOL_VERSION    "0.0.1"
 #define MODULE_VENDOR_ID    (32)   					 /* Partner ID */
 
 #define HOST_ADDRESS_LEN    (128)
@@ -47,7 +51,19 @@ typedef struct {
 
 
 
+int iot_device_info_init(void);
+uint8_t iot_device_info_set(const char *product_key,
+							const char *device_name,
+							const char *device_secret);
+
+iotx_device_info_pt iotx_device_info_get(void);
+
+iotx_conn_info_pt iotx_conn_info_get(void);
+
+
 #endif
+
+
 
 
 

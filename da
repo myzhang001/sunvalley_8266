@@ -1,0 +1,47 @@
+[33mcommit da85ce4dbb0024fbaf4115390b2b646408b77402[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: zhangmuyang <279401783@qq.com>
+Date:   Sat Dec 29 13:53:27 2018 +0800
+
+    smart_config timeout bug
+
+[33mcommit 32d1c90a6b21cd9f702289176596eeb6fe8b1f69[m
+Author: Denny.Zhang <denny.zhang@sunvalley.com.cn>
+Date:   Fri Dec 21 11:06:39 2018 +0800
+
+    1.修复smart config bug 2.添加配网超时处理
+
+[33mcommit 611ca54893a78c52d5b804ccb8ea9d1b64050f6e[m
+Author: Denny.Zhang <denny.zhang@sunvalley.com.cn>
+Date:   Thu Nov 15 15:37:40 2018 +0800
+
+    demo alexa
+
+[33mcommit db03d38a606028dd9e5e490ee3ab8f3033e556a9[m[33m ([m[1;32mdev[m[33m)[m
+Author: Denny.Zhang <denny.zhang@sunvalley.com.cn>
+Date:   Wed Nov 14 15:22:29 2018 +0800
+
+    smart config
+
+[33mcommit 789883cd11b56fa14ce07dcd7f9464bd4b5e0d89[m
+Author: Denny.Zhang <denny.zhang@sunvalley.com.cn>
+Date:   Tue Nov 13 18:03:42 2018 +0800
+
+    add tcp client
+
+[33mcommit 776f2ac17548ca138cbc02c35b948ebe492446c5[m
+Author: Denny.Zhang <denny.zhang@sunvalley.com.cn>
+Date:   Mon Nov 12 17:57:07 2018 +0800
+
+    add uart proc
+
+[33mcommit 79fbaeda9b777884e7ddc4d0f8495c30a264748e[m
+Author: Denny.Zhang <denny.zhang@sunvalley.com.cn>
+Date:   Fri Nov 9 17:54:10 2018 +0800
+
+    add product test mode
+
+[33mcommit 401870f589526dbd7c484f5fb9bc515ea4a2c951[m
+Author: Denny.Zhang <denny.zhang@sunvalley.com.cn>
+Date:   Thu Nov 8 15:09:04 2018 +0800
+
+    first commit

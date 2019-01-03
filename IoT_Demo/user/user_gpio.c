@@ -133,7 +133,7 @@ user_key_intr_handler()
 		DB("\n enter WIFI_URLCFG_NUM ir!\n");
 		GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(GPIO_ID_PIN(WIFI_URLCFG_NUM))); 
 		G_url_config_flag=1;
-		espconn_disconnect(&tcp_client);
+		//espconn_disconnect(&tcp_client);
 		//set_G_server_mode(SERVER_CONFIG);
     }
     // ETS_GPIO_INTR_ENABLE();

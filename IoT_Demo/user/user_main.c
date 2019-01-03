@@ -53,19 +53,23 @@
 
 
 
-#if 0
-#define FAC_TEST_SSID     "Sunvalley-Office-E7"
-#define FAC_TEST_PASSWORD "near#work123"
+#if 1
+
+#define FAC_TEST_SSID     "VAVA-14478554"
+#define FAC_TEST_PASSWORD "B6E12D6F"
 
 #else
-#define FAC_TEST_SSID     "TP-LINK_2.4G"
-#define FAC_TEST_PASSWORD "abcdef1234"
+
+//#define FAC_TEST_SSID     "TP-LINK_2.4G"
+//#define FAC_TEST_PASSWORD "abcdef1234"
+
+#define FAC_TEST_SSID       "@PHICOMM_98"
+#define FAC_TEST_PASSWORD   "12345678"
 #endif
 
 
-
 uint8_t G_online_mode;//0断网，1连上服务器
-uint8_t dev_mac[6];//mac地址,hex
+uint8_t dev_mac[6];   //mac地址,hex
 uint8_t device_id[13];//mac地址，字符串
 
 
@@ -639,7 +643,7 @@ void ICACHE_FLASH_ATTR product_test_start(void)
 
 void ICACHE_FLASH_ATTR mqtt_init(void)
 {
-	CFG_Load();                                //用于保存服务器地址和连接端口
+	CFG_Load();                                								//用于保存服务器地址和连接端口
 
 	MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
 	//MQTT_InitConnection(&mqttClient, "192.168.11.122", 1880, 0);
@@ -653,15 +657,14 @@ void ICACHE_FLASH_ATTR mqtt_init(void)
 	MQTT_OnPublished(&mqttClient, mqttPublishedCb);
 	MQTT_OnData(&mqttClient, mqttDataCb);
 
-	//WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, wifiConnectCb);         //wifi连接标志位
+	//WIFI_Connect(sysCfg.sta_ssid,sysCfg.sta_pwd,wifiConnectCb);           //wifi连接标志位  不使用这里保存的wifi 账号和密码
 
 	INFO("\r\nSystem started ...\r\n");
-
 }
 
 
-
-void ICACHE_FLASH_ATTR user_init(void)
+//用户程序初始化
+void ICACHE_FLASH_ATTR user_app_init(void)
 {
 	mqtt_init();                  
 }
@@ -710,7 +713,7 @@ user_init(void)
     //user_webserver_init(SERVER_PORT);
 #endif
 
-	user_init();                                           //用户程序初始化
+	//user_app_init();                                       //用户程序初始化
 	system_init_done_cb(product_test_start);               //初始化
 	
 }

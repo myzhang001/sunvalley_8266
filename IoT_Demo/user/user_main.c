@@ -286,7 +286,7 @@ void ICACHE_FLASH_ATTR smart_config(int32 time_out)
 {
 	DBG("smart config ver=%s\n",smartconfig_get_version());
 
-	wifi_station_disconnect();//停止连接
+	wifi_station_disconnect();             //停止连接
     wifi_station_set_auto_connect(FALSE);
 	DEBUG();
 
@@ -346,7 +346,7 @@ os_timer_t wifi_status_timer;
 			case SMART_CONFIG:
 				DBG("###SMART_CONFIG!\n");
 
-				smart_config(120);
+				smart_config(45);
 
 				#if 0
 				smartconfig_stop();
@@ -713,7 +713,7 @@ user_init(void)
     //user_webserver_init(SERVER_PORT);
 #endif
 
-	//user_app_init();                                       //用户程序初始化
+	user_app_init();                                       //用户程序初始化
 	system_init_done_cb(product_test_start);               //初始化
 	
 }

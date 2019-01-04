@@ -32,15 +32,25 @@ wifi_conn_func();
 
 
 void ICACHE_FLASH_ATTR
-rount_timer_func()//连接路由器失败
+rount_timer_func()			//连接路由器失败
 {
 	DBG("\r\n ----zmy   smart smart_config  timeout ");
-	
+
+
+	//读出flash 里的ssid  和密码
+	struct  station_config config;
+
+	wifi_station_get_config_default(&config);
+
+	os_printf("\r\n  zmy  time out  ssid :%s  passwd:%s",config.ssid,config.password);
+
+	wifi_station_set_config_current(&config);
+
 	smartconfig_stop();                    
 	wifi_set_opmode(STATION_MODE);		   //设置为sta 模式
 
 	wifi_station_connect();
-	wifi_station_set_auto_connect(TRUE);////打开自动连接功能
+	wifi_station_set_auto_connect(TRUE);//打开自动连接功能
 
     //rount_res_send(0);
     //ROUTCFG_flag=0;

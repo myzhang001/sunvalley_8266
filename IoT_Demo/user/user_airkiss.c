@@ -129,6 +129,8 @@ airkiss_start_discover(void)
 }
 
 
+struct station_config *sta_conf = NULL;
+
 
 void ICACHE_FLASH_ATTR smartconfig_done(sc_status status, void *pdata)
 {
@@ -154,41 +156,43 @@ void ICACHE_FLASH_ATTR smartconfig_done(sc_status status, void *pdata)
         break;
     case SC_STATUS_LINK:
         os_printf("SC_STATUS_LINK,start link\n");
-        struct station_config *sta_conf = pdata;
+        
+        sta_conf = pdata;                                 // 保存扫描到的 ssid 和 passwd
 
 		os_printf("\r\n start link zmy ssid %s",sta_conf->ssid);
 		os_printf("\r\n start link zmy paaswd %s",sta_conf->password);
-		
+
+		//保存下配置成功的ssid 和passwd
+	
+#if 1
+		wifi_station_set_config_current(sta_conf);         //配置 ESP8266 station,配置信息不保存到flash中
+		wifi_station_disconnect();
+		wifi_station_connect();
+		//wifi_station_set_auto_connect(TRUE);			   //打开自动连接功能
+#endif
+
         break;
     case SC_STATUS_LINK_OVER:
         os_printf("SC_STATUS_LINK_OVER\n");
 
-		struct station_config *s_sta_conf = pdata;
+		//struct station_config *s_sta_conf = pdata;
 		
-        os_printf("\r\n link_over zmy ssid %s",s_sta_conf->ssid);
-		os_printf("\r\n link_over zmy paaswd %s",s_sta_conf->password);
+        os_printf("\r\n link_over zmy ssid %s",sta_conf->ssid);
+		os_printf("\r\n link_over zmy paaswd %s",sta_conf->password);
         if(pdata != NULL)
         {
             uint8 phone_ip[4] = {0};
             os_memcpy(phone_ip, (uint8*)pdata, 4);
             os_printf("Phone ip: %d.%d.%d.%d\n",phone_ip[0],phone_ip[1],phone_ip[2],phone_ip[3]);
         }
-		else {
+		else{
             	//SC_TYPE_AIRKISS - support airkiss v2.0
 				//airkiss_start_discover();
             }
-
-            //保存下配置成功的ssid 和passwd
-#if 1
-			wifi_station_set_config(s_sta_conf);
-			wifi_station_disconnect();
-			wifi_station_connect();
-			wifi_station_set_auto_connect(TRUE);////打开自动连接功能
-			
-#endif
             
+		wifi_station_set_config(sta_conf);  //配置成功需要把ssid 和passwd 保存到flash            
         smartconfig_stop();
-        os_timer_disarm(&rount_t);//关掉配置失败的定时器
+        os_timer_disarm(&rount_t);		    //关掉配置失败的定时器
         break;
     }
 }
